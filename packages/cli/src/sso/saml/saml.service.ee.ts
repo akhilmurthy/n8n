@@ -1,5 +1,5 @@
 import type express from 'express';
-import Container, { Service } from 'typedi';
+import { Service } from 'typedi';
 import type { User } from '@db/entities/User';
 import { ApplicationError, jsonParse } from 'n8n-workflow';
 import { getServiceProviderInstance } from './serviceProvider.ee';
@@ -73,7 +73,11 @@ export class SamlService {
 		};
 	}
 
-	constructor(private readonly logger: Logger) {}
+	constructor(
+		private readonly logger: Logger,
+		private readonly settingsRepository: SettingsRepository,
+		private readonly userRepository: UserRepository,
+	) {}
 
 	async init(): Promise<void> {
 		// load preferences first but do not apply so as to not load samlify unnecessarily
@@ -169,7 +173,7 @@ export class SamlService {
 		const attributes = await this.getAttributesFromLoginResponse(req, binding);
 		if (attributes.email) {
 			const lowerCasedEmail = attributes.email.toLowerCase();
-			const user = await Container.get(UserRepository).findOne({
+			const user = await this.userRepository.findOne({
 				where: { email: lowerCasedEmail },
 				relations: ['globalRole', 'authIdentities'],
 			});
@@ -259,7 +263,7 @@ export class SamlService {
 	}
 
 	async loadFromDbAndApplySamlPreferences(apply = true): Promise<SamlPreferences | undefined> {
-		const samlPreferences = await Container.get(SettingsRepository).findOne({
+		const samlPreferences = await this.settingsRepository.findOne({
 			where: { key: SAML_PREFERENCES_DB_KEY },
 		});
 		if (samlPreferences) {
@@ -277,16 +281,16 @@ export class SamlService {
 	}
 
 	async saveSamlPreferencesToDb(): Promise<SamlPreferences | undefined> {
-		const samlPreferences = await Container.get(SettingsRepository).findOne({
+		const samlPreferences = await this.settingsRepository.findOne({
 			where: { key: SAML_PREFERENCES_DB_KEY },
 		});
 		const settingsValue = JSON.stringify(this.samlPreferences);
 		let result: Settings;
 		if (samlPreferences) {
 			samlPreferences.value = settingsValue;
-			result = await Container.get(SettingsRepository).save(samlPreferences);
+			result = await this.settingsRepository.save(samlPreferences);
 		} else {
-			result = await Container.get(SettingsRepository).save({
+			result = await this.settingsRepository.save({
 				key: SAML_PREFERENCES_DB_KEY,
 				value: settingsValue,
 				loadOnStartup: true,

@@ -1,4 +1,4 @@
-import Container, { Service } from 'typedi';
+import { Service } from 'typedi';
 import type { EntityManager, FindManyOptions, FindOneOptions, FindOptionsWhere } from 'typeorm';
 import { In } from 'typeorm';
 import { User } from '@db/entities/User';
@@ -26,6 +26,7 @@ export class UserService {
 		private readonly jwtService: JwtService,
 		private readonly mailer: UserManagementMailer,
 		private readonly roleService: RoleService,
+		private readonly internalHooks: InternalHooks,
 	) {}
 
 	async findOne(options: FindOneOptions<User>) {
@@ -217,14 +218,14 @@ export class UserService {
 					if (result.emailSent) {
 						invitedUser.user.emailSent = true;
 						delete invitedUser.user?.inviteAcceptUrl;
-						void Container.get(InternalHooks).onUserTransactionalEmail({
+						void this.internalHooks.onUserTransactionalEmail({
 							user_id: id,
 							message_type: 'New user invite',
 							public_api: false,
 						});
 					}
 
-					void Container.get(InternalHooks).onUserInvite({
+					void this.internalHooks.onUserInvite({
 						user: owner,
 						target_user_id: Object.values(toInviteUsers),
 						public_api: false,
@@ -233,7 +234,7 @@ export class UserService {
 					});
 				} catch (e) {
 					if (e instanceof Error) {
-						void Container.get(InternalHooks).onEmailFailed({
+						void this.internalHooks.onEmailFailed({
 							user: owner,
 							message_type: 'New user invite',
 							public_api: false,

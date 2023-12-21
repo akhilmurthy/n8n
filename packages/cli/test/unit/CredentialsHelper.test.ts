@@ -271,6 +271,7 @@ describe('CredentialsHelper', () => {
 
 		for (const testData of tests) {
 			test(testData.description, async () => {
+				//@ts-ignore
 				mockNodesAndCredentials.loadedCredentials = {
 					[testData.input.credentialType.name]: {
 						type: testData.input.credentialType,

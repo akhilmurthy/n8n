@@ -1,5 +1,5 @@
 import { In } from 'typeorm';
-import Container, { Service } from 'typedi';
+import { Service } from 'typedi';
 import { Authorized, NoAuthRequired, Post, RequireGlobalScope, RestController } from '@/decorators';
 import { issueCookie } from '@/auth/jwt';
 import { RESPONSE_ERROR_MESSAGES } from '@/constants';
@@ -40,7 +40,7 @@ export class InvitationController {
 	@Post('/')
 	@RequireGlobalScope('user:create')
 	async inviteUser(req: UserRequest.Invite) {
-		const isWithinUsersLimit = Container.get(License).isWithinUsersLimit();
+		const isWithinUsersLimit = this.license.isWithinUsersLimit();
 
 		if (isSamlLicensedAndEnabled()) {
 			this.logger.debug(

@@ -23,7 +23,7 @@ import config from '@/config';
 import { getCurrentAuthenticationMethod } from '@/sso/ssoHelpers';
 import { getLdapLoginLabel } from '@/Ldap/helpers';
 import { getSamlLoginLabel } from '@/sso/saml/samlHelpers';
-import { getVariablesLimit } from '@/environments/variables/enviromentHelpers';
+import { getVariablesLimit } from '@/environments/variables/environmentHelpers';
 import {
 	getWorkflowHistoryLicensePruneTime,
 	getWorkflowHistoryPruneTime,

@@ -1,5 +1,5 @@
 import express from 'express';
-import { Container, Service } from 'typedi';
+import { Service } from 'typedi';
 import { getInstanceBaseUrl } from '@/UserManagement/UserManagementHelper';
 import {
 	Authorized,
@@ -40,7 +40,10 @@ import { AuthError } from '@/errors/response-errors/auth.error';
 @Authorized()
 @RestController('/sso/saml')
 export class SamlController {
-	constructor(private samlService: SamlService) {}
+	constructor(
+		private readonly samlService: SamlService,
+		private readonly internalHooks: InternalHooks,
+	) {}
 
 	@NoAuthRequired()
 	@Get(SamlUrls.metadata)
@@ -139,7 +142,7 @@ export class SamlController {
 				}
 			}
 			if (loginResult.authenticatedUser) {
-				void Container.get(InternalHooks).onUserLoginSuccess({
+				void this.internalHooks.onUserLoginSuccess({
 					user: loginResult.authenticatedUser,
 					authenticationMethod: 'saml',
 				});
@@ -156,7 +159,7 @@ export class SamlController {
 					return res.status(202).send(loginResult.attributes);
 				}
 			}
-			void Container.get(InternalHooks).onUserLoginFailed({
+			void this.internalHooks.onUserLoginFailed({
 				user: loginResult.attributes.email ?? 'unknown',
 				authenticationMethod: 'saml',
 			});
@@ -165,7 +168,7 @@ export class SamlController {
 			if (isConnectionTestRequest(req)) {
 				return res.send(getSamlConnectionTestFailedView((error as Error).message));
 			}
-			void Container.get(InternalHooks).onUserLoginFailed({
+			void this.internalHooks.onUserLoginFailed({
 				user: 'unknown',
 				authenticationMethod: 'saml',
 			});

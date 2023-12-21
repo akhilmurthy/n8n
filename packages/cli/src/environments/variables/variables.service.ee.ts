@@ -1,27 +1,28 @@
-import { Container, Service } from 'typedi';
-import type { Variables } from '@db/entities/Variables';
-import { InternalHooks } from '@/InternalHooks';
-import { generateNanoId } from '@db/utils/generators';
-import { canCreateNewVariable } from './enviromentHelpers';
-import { CacheService } from '@/services/cache.service';
-import { VariablesRepository } from '@db/repositories/variables.repository';
+import { Service } from 'typedi';
 import type { DeepPartial } from 'typeorm';
+
+import type { Variables } from '@db/entities/Variables';
+import { generateNanoId } from '@db/utils/generators';
+import { VariablesRepository } from '@db/repositories/variables.repository';
+import { InternalHooks } from '@/InternalHooks';
+import { CacheService } from '@/services/cache.service';
 import { VariableCountLimitReachedError } from '@/errors/variable-count-limit-reached.error';
 import { VariableValidationError } from '@/errors/variable-validation.error';
+
+import { canCreateNewVariable } from './environmentHelpers';
 
 @Service()
 export class VariablesService {
 	constructor(
-		protected cacheService: CacheService,
-		protected variablesRepository: VariablesRepository,
+		private readonly cacheService: CacheService,
+		private readonly variablesRepository: VariablesRepository,
+		private readonly internalHooks: InternalHooks,
 	) {}
 
 	async getAllCached(): Promise<Variables[]> {
 		const variables = await this.cacheService.get('variables', {
-			async refreshFunction() {
-				// TODO: log refresh cache metric
-				return Container.get(VariablesService).findAll();
-			},
+			// TODO: log refresh cache metric
+			refreshFunction: async () => this.findAll(),
 		});
 		return (variables as Array<DeepPartial<Variables>>).map((v) =>
 			this.variablesRepository.create(v),
@@ -74,7 +75,7 @@ export class VariablesService {
 		}
 		this.validateVariable(variable);
 
-		void Container.get(InternalHooks).onVariableCreated({ variable_type: variable.type });
+		void this.internalHooks.onVariableCreated({ variable_type: variable.type });
 		const saveResult = await this.variablesRepository.save({
 			...variable,
 			id: generateNanoId(),
